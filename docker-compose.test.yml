@@ -5,10 +5,10 @@ services:
     container_name: flowable-mysql-test
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: Flow@2026#Db!Str0ng
       MYSQL_DATABASE: flowable_db
       MYSQL_USER: flowable
-      MYSQL_PASSWORD: flowable123
+      MYSQL_PASSWORD: Flow@2026#Fable!9
     ports:
       - "3307:3306"
     command: >
