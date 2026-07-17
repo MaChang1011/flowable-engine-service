@@ -1,0 +1,25 @@
+# 测试用配置（H2 内存数据库 + 禁用 Flyway）
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  flyway:
+    enabled: false
+
+flowable:
+  async-executor-activate: false
+  database-schema-update: true
+  check-process-definitions: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.example.workflow: DEBUG
+    org.flowable: WARN

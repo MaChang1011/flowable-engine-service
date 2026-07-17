@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.workflow.mapper.OrgMapper">
+    <select id="selectDescendantTenantIds" resultType="string">
+        WITH RECURSIVE org_tree AS (
+            SELECT id, tenant_id FROM sys_org WHERE tenant_id = #{currentTenantId}
+            UNION ALL
+            SELECT o.id, o.tenant_id
+            FROM sys_org o
+            INNER JOIN org_tree t ON o.parent_id = t.id
+        )
+        SELECT tenant_id FROM org_tree
+    </select>
+</mapper>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作流设计器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;background:#f5f5f5}
+.toolbar{background:#1a1a2e;color:#fff;padding:0 16px;height:48px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.toolbar .title{font-size:16px;font-weight:700;margin-right:16px}
+.toolbar button{background:#16213e;color:#ccc;border:1px solid #333;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;transition:all .2s}
+.toolbar button:hover{background:#0f3460;color:#fff;border-color:#555}
+.toolbar button.primary{background:#e94560;color:#fff;border-color:#e94560}
+.toolbar button.primary:hover{background:#c23152}
+.toolbar .sep{width:1px;height:24px;background:#333;margin:0 4px}
+.toolbar input[type=file]{display:none}
+.toolbar .status{font-size:12px;color:#888;margin-left:auto}
+.tabs{display:flex;background:#16213e;padding:0 16px;gap:0;flex-shrink:0}
+.tabs .tab{padding:10px 20px;color:#888;cursor:pointer;font-size:14px;border-bottom:2px solid transparent;transition:all .2s}
+.tabs .tab:hover{color:#ccc}
+.tabs .tab.active{color:#fff;border-bottom-color:#e94560}
+.main{flex:1;display:flex;overflow:hidden}
+.canvas-container{flex:1;display:flex;position:relative}
+.djs-palette{position:absolute!important;left:0;top:0;z-index:10!important}
+.canvas-container .hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#999;font-size:14px;pointer-events:none;z-index:0}
+.canvas-container .bjs-powered-by{display:none!important}
+.canvas-container.hidden{display:none}
+#form-designer{flex:1;display:flex}
+#form-designer.hidden{display:none}
+#form-designer .fjs-container{width:100%}
+.props-panel{width:300px;background:#fff;border-left:1px solid #ddd;overflow-y:auto;padding:12px;flex-shrink:0}
+.props-panel h4{font-size:13px;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.props-panel label{display:block;font-size:12px;color:#777;margin:8px 0 2px}
+.props-panel input,.props-panel select,.props-panel textarea{width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:3px;font-size:12px}
+.props-panel textarea{height:60px;font-family:monospace;resize:vertical}
+.help-bar{background:#f0f4ff;border-bottom:1px solid #d0d8f0;padding:6px 16px;font-size:12px;color:#555;display:flex;gap:20px;flex-wrap:wrap;flex-shrink:0;overflow-x:auto}
+.help-bar .item{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.help-bar .icon{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;flex-shrink:0}
+.help-bar .icon.start{border:2px solid #27ae60;color:#27ae60}
+.help-bar .icon.end{border:2px solid #e74c3c;color:#e74c3c;border-width:3px}
+.help-bar .icon.task{border:2px solid #2980b9;color:#2980b9;border-radius:3px}
+.help-bar .icon.gate{border:2px solid #f39c12;color:#f39c12;transform:rotate(45deg)}
+.help-bar .icon.flow{border:2px solid #888;color:#888;width:30px;height:2px;border-radius:0}
+.props-panel .hint{font-size:11px;color:#999;margin-bottom:2px;display:block}
+.props-panel .field-group{margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed #eee}
+.toast{position:fixed;bottom:24px;right:24px;background:#333;color:#fff;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.toast.success{background:#27ae60}
+.toast.error{background:#e74c3c}
+</style>
+</head>
+<body>
+
+<!-- 工具栏 -->
+<div class="toolbar">
+  <span class="title">⚙ 工作流设计器</span>
+  <button onclick="newDiagram()">新建</button>
+  <button id="btn-import" onclick="document.getElementById('file-import').click()">导入 BPMN</button>
+  <input type="file" id="file-import" accept=".bpmn,.bpmn20.xml,.xml" onchange="importBPMN(event)">
+  <button onclick="exportBPMN()">导出 BPMN</button>
+  <span class="sep"></span>
+  <button id="btn-deploy" class="primary" onclick="deployProcess()">🚀 部署到引擎</button>
+  <span class="status" id="status-bar"></span>
+</div>
+
+<!-- Tab -->
+<div class="tabs">
+  <div class="tab active" data-tab="process" onclick="switchTab('process')">📐 流程设计</div>
+  <div class="tab" data-tab="form" onclick="switchTab('form')">📋 表单设计</div>
+</div>
+
+<!-- 图例 -->
+<div class="help-bar" id="help-bar">
+  <div class="item"><span class="icon start">○</span> 开始事件：流程起点</div>
+  <div class="item"><span class="icon end">●</span> 结束事件：流程终点</div>
+  <div class="item"><span class="icon task">▭</span> 用户任务：需要人工处理</div>
+  <div class="item"><span class="icon task">⚙</span> 服务任务：自动调用Java类/表达式</div>
+  <div class="item"><span class="icon gate">◇</span> 排他网关：条件分支（二选一）</div>
+  <div class="item"><span class="icon gate">◇</span> 并行网关：同时走多条分支</div>
+  <div class="item"><span class="icon flow">→</span> 连线：拖拽连接两个节点</div>
+</div>
+<div class="main">
+  <!-- 流程设计器 -->
+  <div class="canvas-container" id="process-designer">
+    <div id="bpmn-canvas" style="flex:1"></div>
+    <div class="props-panel" id="bpmn-props">
+      <h4>📝 元素属性</h4>
+      <div id="props-content"><em style="color:#aaa;font-size:12px">点击画布中的节点查看属性</em></div>
+    </div>
+  </div>
+  
+  <!-- 表单设计器 -->
+  <div class="canvas-container hidden" id="form-designer">
+    <div id="form-editor" style="flex:1;background:#fff"></div>
+    <div class="props-panel" id="form-props">
+      <h4>📝 表单配置</h4>
+      <div id="form-props-content">
+        <label>表单 Key</label>
+        <input type="text" id="form-key" value="my_form" placeholder="唯一标识">
+        <label>表单名称</label>
+        <input type="text" id="form-name" value="我的表单" placeholder="表单名称">
+        <hr style="margin:12px 0;border-color:#eee">
+        <em style="color:#aaa;font-size:11px">拖拽左侧控件到画布。点击控件编辑右侧属性。</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- bpmn-js Modeler + CSS -->
+<link rel="stylesheet" href="/designer/diagram-js.css">
+<link rel="stylesheet" href="/designer/bpmn-font.css">
+<style>
+.djs-palette{position:absolute;left:20px;top:20px}
+</style>
+<script src="/designer/bpmn-modeler.min.js"></script>
+
+<script>
+// ========== 初始化 ==========
+let currentTab = 'process';
+
+const bpmnCanvas = document.getElementById('bpmn-canvas');
+let bpmnModeler = null;
+
+try {
+  bpmnModeler = new BpmnJS({ container: bpmnCanvas });
+} catch(e) {
+  bpmnCanvas.innerHTML = '<div style="padding:40px;color:#c0392b;text-align:center">❌ 设计器加载失败: bpmn-js 库未正确加载。<br><small>请刷新页面重试</small></div>';
+  console.error('BpmnModeler init failed:', e);
+}
+
+// 默认空白 BPMN
+const EMPTY_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:flowable="http://flowable.org/bpmn"
+  id="Definitions_1" targetNamespace="http://flowable.org/bpmn20">
+  <bpmn:process id="myProcess" name="我的流程" isExecutable="true">
+    <bpmn:startEvent id="start" name="开始"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="myProcess">
+      <bpmndi:BPMNShape id="BPMNShape_start" bpmnElement="start">
+        <dc:Bounds x="179" y="159" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('process-designer').classList.toggle('hidden', tab !== 'process');
+  document.getElementById('form-designer').classList.toggle('hidden', tab !== 'form');
+  
+  // 隐藏 form 相关按钮
+  document.getElementById('btn-deploy').style.display = tab === 'process' ? '' : 'none';
+  document.getElementById('btn-import').style.display = tab === 'process' ? '' : 'none';
+}
+
+// ========== Toast ==========
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type||'') + ' show';
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ========== bpmn-js 属性监听 ==========
+if (bpmnModeler) {
+bpmnModeler.on('selection.changed', e => {
+  const sel = e.newSelection[0];
+  const content = document.getElementById('props-content');
+  
+  // 调试：显示选中元素的类型
+  console.log('选中元素:', sel ? sel.type : '无', sel);
+  
+  if (!sel || sel.type === 'bpmn:Process') {
+    content.innerHTML = '<em style="color:#aaa;font-size:12px">点击画布中的节点查看属性</em>';
+    return;
+  }
+  
+  const bo = sel.businessObject;
+  let html = '';
+  
+  if (sel.type === 'bpmn:UserTask') {
+    html += '<div class="field-group">';
+    html += '<label>任务ID *</label><input id="prop-id" value="'+(bo.id||'')+'" onchange="updateProp(\'id\',this.value)">';
+    html += '<span class="hint">英文标识，如 submitLeave</span>';
+    html += '<label>任务名称</label><input id="prop-name" value="'+(bo.name||'')+'" onchange="updateProp(\'name\',this.value)">';
+    html += '<span class="hint">显示名称，如 提交请假申请</span>';
+    html += '</div>';
+    
+    html += '<div class="field-group">';
+    html += '<label>🎯 指定处理人 (assignee)</label><input id="prop-assignee" value="'+(bo.assignee||'')+'" onchange="updateProp(\'assignee\',this.value)" placeholder="如: 张三, ${initiator}">';
+    html += '<span class="hint">固定分配给某人，单独任务用这个</span>';
+    html += '</div>';
+    
+    html += '<div class="field-group">';
+    html += '<label>👥 候选人 (candidateUsers)</label><input id="prop-cand" value="'+(bo.candidateUsers||'')+'" onchange="updateProp(\'candidateUsers\',this.value)" placeholder="张三,李四,王五">';
+    html += '<span class="hint">逗号分隔，候选人都能看到，谁抢到算谁的</span>';
+    html += '</div>';
+    
+    html += '<div class="field-group">';
+    html += '<label>🏢 候选组/角色 (candidateGroups)</label><input id="prop-candg" value="'+(bo.candidateGroups||'')+'" onchange="updateProp(\'candidateGroups\',this.value)" placeholder="manager,finance,hr">';
+    html += '<span class="hint">👈 填角色名！如 manager、部门经理。该角色下所有成员可见并可抢任务</span>';
+    html += '</div>';
+    
+    html += '<div class="field-group">';
+    html += '<label>📋 表单 Key (formKey)</label><input id="prop-formkey" value="'+(bo.formKey||'')+'" onchange="updateProp(\'formKey\',this.value)" placeholder="关联表单标识">';
+    html += '<span class="hint">对应表单设计器中的表单Key，用于自动渲染表单</span>';
+    html += '</div>';
+  } else if (sel.type === 'bpmn:SequenceFlow') {
+    html += '<label>连线名称</label><input id="prop-name" value="'+(bo.name||'')+'" onchange="updateProp(\'name\',this.value)">';
+    html += '<label>条件表达式</label><textarea id="prop-condition" onchange="updateProp(\'conditionExpression\',this.value)" placeholder="如: ${approved==true}">'+(bo.conditionExpression?bo.conditionExpression.body:'')+'</textarea>';
+  } else if (sel.type === 'bpmn:ServiceTask') {
+    html += '<label>任务ID</label><input id="prop-id" value="'+(bo.id||'')+'" onchange="updateProp(\'id\',this.value)">';
+    html += '<label>任务名称</label><input id="prop-name" value="'+(bo.name||'')+'" onchange="updateProp(\'name\',this.value)">';
+    html += '<label>实现类 (class)</label><input id="prop-class" value="'+(bo.flowableClass||'')+'" onchange="updateProp(\'class\',this.value)" placeholder="全限定类名">';
+    html += '<label>表达式 (expression)</label><input id="prop-expr" value="'+(bo.flowableExpression||'')+'" onchange="updateProp(\'expression\',this.value)" placeholder="如: ${myBean.doSomething()}">';
+  } else if (sel.type === 'bpmn:StartEvent' || sel.type === 'bpmn:EndEvent') {
+    html += '<label>名称</label><input id="prop-name" value="'+(bo.name||'')+'" onchange="updateProp(\'name\',this.value)">';
+  } else if (sel.type === 'bpmn:ExclusiveGateway' || sel.type === 'bpmn:ParallelGateway') {
+    html += '<label>网关名称</label><input id="prop-name" value="'+(bo.name||'')+'" onchange="updateProp(\'name\',this.value)">';
+  } else {
+    // 回退：显示所有 businessObject 属性
+    html += '<em style="color:#aaa;font-size:11px">类型: '+sel.type+'</em>';
+    html += '<hr style="margin:8px 0;border-color:#eee">';
+    html += '<label>ID</label><input value="'+(bo.id||'')+'" onchange="updateProp(\'id\',this.value)">';
+    html += '<label>Name</label><input value="'+(bo.name||'')+'" onchange="updateProp(\'name\',this.value)">';
+    // 遍历 bo.$attrs 显示扩展属性
+    if (bo.$attrs) {
+      Object.keys(bo.$attrs).forEach(k => {
+        if (k !== 'id' && k !== 'name') {
+          html += '<label>'+k+'</label><input value="'+(bo.$attrs[k]||'')+'" onchange="updateExtProp(\''+k+'\',this.value)">';
+        }
+      });
+    }
+  }
+  
+  content.innerHTML = html;
+});
+
+}
+
+function updateProp(prop, value) {
+  const sel = bpmnModeler.get('selection').get()[0];
+  if (!sel) return;
+  const bo = sel.businessObject;
+  const modeling = bpmnModeler.get('modeling');
+  
+  if (prop === 'assignee') modeling.updateProperties(sel, { assignee: value });
+  else if (prop === 'candidateUsers') modeling.updateProperties(sel, { candidateUsers: value });
+  else if (prop === 'candidateGroups') modeling.updateProperties(sel, { candidateGroups: value });
+  else if (prop === 'formKey') modeling.updateProperties(sel, { formKey: value });
+  else if (prop === 'conditionExpression' && value) {
+    modeling.updateProperties(sel, { conditionExpression: { body: value } });
+  } else if (prop === 'class') modeling.updateProperties(sel, { flowableClass: value });
+  else if (prop === 'expression') modeling.updateProperties(sel, { flowableExpression: value });
+  else if (prop === 'name') modeling.updateProperties(sel, { name: value });
+  else if (prop === 'id') modeling.updateProperties(sel, { id: value });
+}
+
+function updateExtProp(key, value) {
+  const sel = bpmnModeler.get('selection').get()[0];
+  if (!sel) return;
+  const bo = sel.businessObject;
+  if (!bo.$attrs) bo.$attrs = {};
+  bo.$attrs[key] = value;
+  bpmnModeler.get('modeling').updateProperties(sel, {});
+}
+
+// ========== 操作 ==========
+function checkModeler() {
+  if (!bpmnModeler) { showToast('设计器未加载，请刷新页面', 'error'); return true; }
+  return false;
+}
+
+function newDiagram() {
+  if (checkModeler()) return;
+  bpmnModeler.importXML(EMPTY_BPMN).then(() => {
+    bpmnModeler.get('canvas').zoom('fit-viewport');
+    showToast('新建流程', 'success');
+  }).catch(e => showToast('新建失败: '+e.message, 'error'));
+}
+
+function importBPMN(e) {
+  if (checkModeler()) return;
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    bpmnModeler.importXML(ev.target.result).then(() => {
+      bpmnModeler.get('canvas').zoom('fit-viewport');
+      showToast('导入成功: '+file.name, 'success');
+    }).catch(err => showToast('导入失败: '+err.message, 'error'));
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+async function exportBPMN() {
+  if (checkModeler()) return;
+  try {
+    const result = await bpmnModeler.saveXML({ format: true });
+    const blob = new Blob([result.xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'process.bpmn20.xml';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('导出成功', 'success');
+  } catch(e) {
+    showToast('导出失败: '+e.message, 'error');
+  }
+}
+
+async function deployProcess() {
+  if (checkModeler()) return;
+  try {
+    const result = await bpmnModeler.saveXML({ format: true });
+    
+    // 将 camunda 命名空间转为 flowable（引擎兼容）
+    let xml = result.xml
+      .replace(/camunda:assignee/g, 'flowable:assignee')
+      .replace(/camunda:candidateUsers/g, 'flowable:candidateUsers')
+      .replace(/camunda:candidateGroups/g, 'flowable:candidateGroups')
+      .replace(/camunda:formKey/g, 'flowable:formKey')
+      .replace(/camunda:class/g, 'flowable:class')
+      .replace(/camunda:expression/g, 'flowable:expression')
+      .replace(/xmlns:camunda="http:\/\/camunda.org\/schema\/1.0\/bpmn"/g, 'xmlns:flowable="http://flowable.org/bpmn"');
+    
+    const formData = new FormData();
+    formData.append('file', new Blob([xml], {type:'application/xml'}), 'process.bpmn20.xml');
+    
+    const resp = await fetch('/api/process/definition/deploy', { method: 'POST', body: formData });
+    const data = await resp.json();
+    if (data.code === 0) {
+      showToast('部署成功! deploymentId: '+data.data, 'success');
+      document.getElementById('status-bar').textContent = '已部署';
+    } else {
+      showToast('部署失败: '+data.message, 'error');
+    }
+  } catch(e) {
+    showToast('部署出错: '+e.message, 'error');
+  }
+}
+
+// ========== 快捷键 ==========
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    exportBPMN();
+  }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'd') {
+    e.preventDefault();
+    deployProcess();
+  }
+});
+
+// ========== 启动 ==========
+if (bpmnModeler) {
+bpmnModeler.importXML(EMPTY_BPMN).then(() => {
+  bpmnModeler.get('canvas').zoom('fit-viewport');
+  document.getElementById('status-bar').textContent = '就绪';
+  
+  // 检查 palette 是否加载
+  setTimeout(() => {
+    const palette = bpmnCanvas.querySelector('.djs-palette');
+    if (!palette || palette.children.length === 0) {
+      showToast('⚠ 工具栏未加载，请刷新页面', 'error');
+    }
+  }, 500);
+}).catch(e => console.error('init error:', e));
+}
+
+console.log('🚀 工作流设计器已就绪 — /designer/');
+console.log('  Ctrl+S: 导出 BPMN');
+console.log('  Ctrl+D: 部署到引擎');
+</script>
+
+</body>
+</html>

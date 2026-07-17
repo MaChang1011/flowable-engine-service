@@ -1,0 +1,40 @@
+server:
+  port: 9999
+
+spring:
+  application:
+    name: flowable-engine-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3307/flowable_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+
+# Flowable 配置
+flowable:
+  async-executor-activate: false
+  database-schema-update: true
+  check-process-definitions: true
+  activity-font-name: "宋体"
+  label-font-name: "宋体"
+
+# MyBatis 配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.example.workflow: DEBUG
+    org.flowable: INFO
