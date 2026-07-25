@@ -1,0 +1,61 @@
+# ============================================================
+# Flowable Workflow Engine - systemd Unit
+# ============================================================
+# 安装:
+#   sudo cp flowable-engine.service /etc/systemd/system/
+#   sudo mkdir -p /opt/flowable-engine/logs
+#   sudo cp target/flowable-multi-org-service-*.jar /opt/flowable-engine/app.jar
+#   sudo useradd -r -s /bin/false flowable
+#   sudo chown -R flowable:flowable /opt/flowable-engine
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now flowable-engine
+#
+# 管理:
+#   sudo systemctl {start|stop|restart|status} flowable-engine
+#   sudo journalctl -u flowable-engine -f
+# ============================================================
+
+[Unit]
+Description=Flowable Multi-Org Workflow Engine (Port 9999)
+Documentation=https://flowable.com/open-source/docs/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=flowable
+Group=flowable
+WorkingDirectory=/opt/flowable-engine
+ExecStart=/usr/bin/java \
+  -Xms256m -Xmx1024m \
+  -XX:+UseG1GC \
+  -XX:MaxGCPauseMillis=200 \
+  -Djava.awt.headless=true \
+  -Dfile.encoding=UTF-8 \
+  -Duser.timezone=Asia/Shanghai \
+  -Dspring.profiles.active=prod \
+  -jar /opt/flowable-engine/app.jar
+ExecStop=/bin/kill -SIGTERM $MAINPID
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=30
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/flowable-engine/logs
+ReadOnlyPaths=/opt/flowable-engine/app.jar
+
+# 资源限制
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=flowable-engine
+
+[Install]
+WantedBy=multi-user.target

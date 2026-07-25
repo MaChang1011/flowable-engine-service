@@ -1,19 +1,21 @@
 package com.example.workflow.dto.vo;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @Data
-@AllArgsConstructor
 public class ProcessInstanceVO {
-    private String id;
-    private String processDefinitionId;
+    private String processInstanceId;
     private String processDefinitionKey;
+    private String processDefinitionName;
     private String businessKey;
     private String tenantId;
-    private boolean suspended;
-    private boolean active;
-    private LocalDateTime startTime;
+    private String applicantId;
+    private String applicantOrgId;
+    private Boolean suspended;
+    private String startTime;
+    private String endTime;
+    private Map<String, Object> variables;
+    private List<Map<String, Object>> activities;
 }

@@ -1,68 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
              xmlns:flowable="http://flowable.org/bpmn"
-             targetNamespace="http://example.com/workflow">
-
-    <process id="leave_request" name="请假审批" isExecutable="true">
-
-        <!-- 开始 -->
+             targetNamespace="http://flowable.org/test">
+    <process id="leave_request" name="请假审批流程" isExecutable="true">
         <startEvent id="start" name="开始"/>
-
-        <!-- 第一步：提交请假申请 -->
-        <userTask id="submitLeave" name="提交请假申请"
-                  flowable:assignee="张三"/>
-
-        <!-- 第二步：判断天数 -->
-        <exclusiveGateway id="checkDays" name="天数判断"/>
-
-        <!-- 第三步a：主管审批（≤3天） -->
-        <userTask id="managerApprove" name="主管审批"
-                  flowable:assignee="李四"/>
-
-        <!-- 第三步b：总监审批（&gt;3天） -->
-        <userTask id="directorApprove" name="总监审批"
-                  flowable:assignee="王五"/>
-
-        <!-- 第四步：审批结果判断 -->
-        <exclusiveGateway id="approveCheck" name="审批结果"/>
-
-        <!-- 结束：批准 -->
-        <endEvent id="endApproved" name="审批通过"/>
-
-        <!-- 结束：驳回 -->
-        <endEvent id="endRejected" name="审批驳回"/>
-
-        <!-- 开始 → 提交 -->
-        <sequenceFlow sourceRef="start" targetRef="submitLeave"/>
-
-        <!-- 提交 → 判断天数 -->
-        <sequenceFlow sourceRef="submitLeave" targetRef="checkDays"/>
-
-        <!-- ≤3天 → 主管 -->
-        <sequenceFlow sourceRef="checkDays" targetRef="managerApprove">
-            <conditionExpression>${days &lt;= 3}</conditionExpression>
-        </sequenceFlow>
-
-        <!-- &gt;3天 → 总监 -->
-        <sequenceFlow sourceRef="checkDays" targetRef="directorApprove">
-            <conditionExpression>${days &gt; 3}</conditionExpression>
-        </sequenceFlow>
-
-        <!-- 主管 → 结果判断 -->
-        <sequenceFlow sourceRef="managerApprove" targetRef="approveCheck"/>
-
-        <!-- 总监 → 结果判断 -->
-        <sequenceFlow sourceRef="directorApprove" targetRef="approveCheck"/>
-
-        <!-- 批准 -->
-        <sequenceFlow sourceRef="approveCheck" targetRef="endApproved">
-            <conditionExpression>${approved == true}</conditionExpression>
-        </sequenceFlow>
-
-        <!-- 驳回 -->
-        <sequenceFlow sourceRef="approveCheck" targetRef="endRejected">
-            <conditionExpression>${approved == false}</conditionExpression>
-        </sequenceFlow>
-
+        <userTask id="apply" name="提交请假申请" flowable:assignee="${applicant}"/>
+        <userTask id="manager_approve" name="部门经理审批" flowable:candidateGroups="manager"/>
+        <userTask id="hr_approve" name="人事审批" flowable:candidateGroups="hr"/>
+        <endEvent id="end" name="结束"/>
+        <sequenceFlow id="flow1" sourceRef="start" targetRef="apply"/>
+        <sequenceFlow id="flow2" sourceRef="apply" targetRef="manager_approve"/>
+        <sequenceFlow id="flow3" sourceRef="manager_approve" targetRef="hr_approve"/>
+        <sequenceFlow id="flow4" sourceRef="hr_approve" targetRef="end"/>
     </process>
 </definitions>

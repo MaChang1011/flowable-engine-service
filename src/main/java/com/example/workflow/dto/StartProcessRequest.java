@@ -8,5 +8,7 @@ public class StartProcessRequest {
     private String processDefinitionKey;
     private String businessKey;
     private String tenantId;
+    private String applicantId;
+    private String applicantOrgId;
     private Map<String, Object> variables;
 }

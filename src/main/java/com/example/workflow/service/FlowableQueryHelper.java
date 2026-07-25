@@ -1,51 +1,49 @@
 package com.example.workflow.service;
 
-import com.example.workflow.security.SecurityUtils;
+import com.example.workflow.security.PermissionContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.history.HistoricProcessInstanceQuery;
-import org.flowable.task.api.history.HistoricTaskInstanceQuery;
 import org.flowable.engine.runtime.ProcessInstanceQuery;
 import org.flowable.task.api.TaskQuery;
+import org.flowable.task.api.history.HistoricTaskInstanceQuery;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+/**
+ * Flowable查询助手 — 自动注入租户/机构过滤条件
+ */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class FlowableQueryHelper {
 
     private final OrgService orgService;
 
     public void applyTenantFilter(ProcessInstanceQuery query) {
-        injectTenantFilter(query, SecurityUtils.getCurrentTenantId());
+        injectOrgFilter(query);
     }
 
     public void applyTenantFilter(TaskQuery query) {
-        injectTenantFilter(query, SecurityUtils.getCurrentTenantId());
+        injectOrgFilter(query);
     }
 
     public void applyTenantFilter(HistoricProcessInstanceQuery query) {
-        injectTenantFilter(query, SecurityUtils.getCurrentTenantId());
+        injectOrgFilter(query);
     }
 
     public void applyTenantFilter(HistoricTaskInstanceQuery query) {
-        injectTenantFilter(query, SecurityUtils.getCurrentTenantId());
+        injectOrgFilter(query);
     }
 
     @SuppressWarnings("unchecked")
-    private void injectTenantFilter(Object query, String currentTenantId) {
-        if (!StringUtils.hasText(currentTenantId)) {
-            return;
-        }
-        List<String> allowedTenants = orgService.getAccessibleTenantIds(currentTenantId);
-        if (allowedTenants.isEmpty()) {
-            return;
-        }
+    private void injectOrgFilter(Object query) {
+        List<String> accessibleOrgIds = PermissionContext.getAccessibleOrgIds();
+        if (accessibleOrgIds == null || accessibleOrgIds.isEmpty()) return;
 
-        // Flowable 7.x: single tenant = direct filter, multiple = OR chain
-        if (allowedTenants.size() == 1) {
-            String tid = allowedTenants.get(0);
+        if (accessibleOrgIds.size() == 1) {
+            String tid = accessibleOrgIds.get(0);
             if (query instanceof ProcessInstanceQuery q) q.processInstanceTenantId(tid);
             else if (query instanceof TaskQuery q) q.taskTenantId(tid);
             else if (query instanceof HistoricProcessInstanceQuery q) q.processInstanceTenantId(tid);
@@ -53,22 +51,21 @@ public class FlowableQueryHelper {
             return;
         }
 
-        // Multiple tenants: build OR chain
         if (query instanceof ProcessInstanceQuery q) {
-            q.or().processInstanceTenantId(allowedTenants.get(0));
-            for (int i = 1; i < allowedTenants.size(); i++) q.or().processInstanceTenantId(allowedTenants.get(i));
+            q.or().processInstanceTenantId(accessibleOrgIds.get(0));
+            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().processInstanceTenantId(accessibleOrgIds.get(i));
             q.endOr();
         } else if (query instanceof TaskQuery q) {
-            q.or().taskTenantId(allowedTenants.get(0));
-            for (int i = 1; i < allowedTenants.size(); i++) q.or().taskTenantId(allowedTenants.get(i));
+            q.or().taskTenantId(accessibleOrgIds.get(0));
+            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().taskTenantId(accessibleOrgIds.get(i));
             q.endOr();
         } else if (query instanceof HistoricProcessInstanceQuery q) {
-            q.or().processInstanceTenantId(allowedTenants.get(0));
-            for (int i = 1; i < allowedTenants.size(); i++) q.or().processInstanceTenantId(allowedTenants.get(i));
+            q.or().processInstanceTenantId(accessibleOrgIds.get(0));
+            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().processInstanceTenantId(accessibleOrgIds.get(i));
             q.endOr();
         } else if (query instanceof HistoricTaskInstanceQuery q) {
-            q.or().taskTenantId(allowedTenants.get(0));
-            for (int i = 1; i < allowedTenants.size(); i++) q.or().taskTenantId(allowedTenants.get(i));
+            q.or().taskTenantId(accessibleOrgIds.get(0));
+            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().taskTenantId(accessibleOrgIds.get(i));
             q.endOr();
         }
     }

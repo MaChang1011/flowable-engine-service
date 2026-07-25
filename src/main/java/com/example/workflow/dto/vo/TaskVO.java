@@ -1,20 +1,22 @@
 package com.example.workflow.dto.vo;
 
 import lombok.Data;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class TaskVO {
-    private String id;
-    private String name;
-    private String description;
+    private String taskId;
+    private String taskName;
     private String assignee;
-    private List<String> candidateGroups;
-    private List<String> candidateUsers;
     private String processInstanceId;
     private String processDefinitionKey;
+    private String processDefinitionId;
+    private String businessKey;
+    private String createTime;
+    private String dueDate;
+    private String formKey;
     private String tenantId;
-    private LocalDateTime createTime;
-    private LocalDateTime dueDate;
+    private String currentActivityName;
+    private Map<String, Object> variables;
 }

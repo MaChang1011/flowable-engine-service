@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.workflow.mapper.BusinessDataMapper">
+    <insert id="insert" parameterType="com.example.workflow.entity.WfBusinessData">
+        INSERT INTO wf_business_data (id, process_instance_id, business_key, process_key, tenant_id, applicant_id, applicant_org_id, business_data)
+        VALUES (#{id}, #{processInstanceId}, #{businessKey}, #{processKey}, #{tenantId}, #{applicantId}, #{applicantOrgId}, #{businessData})
+    </insert>
+    <select id="selectByProcessInstanceId" resultType="com.example.workflow.entity.WfBusinessData">
+        SELECT * FROM wf_business_data WHERE process_instance_id = #{processInstanceId}
+    </select>
+    <select id="selectByBusinessKey" resultType="com.example.workflow.entity.WfBusinessData">
+        SELECT * FROM wf_business_data WHERE business_key = #{businessKey}
+    </select>
+    <update id="update">
+        UPDATE wf_business_data SET business_data = #{data.businessData}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}
+    </update>
+</mapper>

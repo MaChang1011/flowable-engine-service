@@ -1,0 +1,73 @@
+# ============================================================
+# Flowable Workflow Engine - Docker Compose (自包含)
+# 包含 MySQL + 工作流引擎
+# ============================================================
+# 使用方式:
+#   docker compose up -d          # 启动所有服务
+#   docker compose logs -f        # 查看日志
+#   docker compose down           # 停止
+#   docker compose build --no-cache  # 重新构建
+# ============================================================
+
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: flowable-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 8NOG8HweNIY4kg0mWBqx
+      MYSQL_DATABASE: workflow_db
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p8NOG8HweNIY4kg0mWBqx"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - flowable-net
+
+  flowable-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flowable-engine:2.0.0
+    container_name: flowable-engine
+    restart: unless-stopped
+    ports:
+      - "9999:9999"
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx1024m"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/workflow_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&connectionCollation=utf8mb4_unicode_ci
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 8NOG8HweNIY4kg0mWBqx
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - flowable-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/api/wf/org/tree"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mysql-data:
+
+networks:
+  flowable-net:
+    driver: bridge

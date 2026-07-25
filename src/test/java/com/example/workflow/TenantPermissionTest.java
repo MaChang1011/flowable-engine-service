@@ -20,31 +20,31 @@ class TenantPermissionTest {
     @Test
     void testRecursiveTenantQuery() {
         // 总公司 → 能看到所有租户
-        List<String> all = orgService.getAccessibleTenantIds("ORG_TENANT_001");
+        List<String> all = orgService.getAccessibleOrgIds("ORG_TENANT_001");
         assertEquals(5, all.size());
         assertTrue(all.contains("ORG_TENANT_001"));
         assertTrue(all.contains("ORG_TENANT_003"));
         assertTrue(all.contains("ORG_TENANT_005"));
 
         // 华东分公司 → 只能看自己和下属
-        List<String> eastChina = orgService.getAccessibleTenantIds("ORG_TENANT_002");
+        List<String> eastChina = orgService.getAccessibleOrgIds("ORG_TENANT_002");
         assertEquals(3, eastChina.size());
         assertTrue(eastChina.contains("ORG_TENANT_002"));
         assertTrue(eastChina.contains("ORG_TENANT_003"));
         assertFalse(eastChina.contains("ORG_TENANT_004"));
 
         // 上海办事处 → 只看自己
-        List<String> shanghai = orgService.getAccessibleTenantIds("ORG_TENANT_003");
+        List<String> shanghai = orgService.getAccessibleOrgIds("ORG_TENANT_003");
         assertEquals(1, shanghai.size());
         assertEquals("ORG_TENANT_003", shanghai.get(0));
     }
 
     @Test
     void testEmptyTenantId() {
-        List<String> result = orgService.getAccessibleTenantIds("");
+        List<String> result = orgService.getAccessibleOrgIds("");
         assertTrue(result.isEmpty());
         
-        result = orgService.getAccessibleTenantIds(null);
+        result = orgService.getAccessibleOrgIds(null);
         assertTrue(result.isEmpty());
     }
 }

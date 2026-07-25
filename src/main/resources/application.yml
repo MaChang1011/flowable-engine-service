@@ -1,40 +1,49 @@
 server:
   port: 9999
+  tomcat:
+    uri-encoding: UTF-8
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  error:
+    include-message: always
+    include-exception: true
+    include-stacktrace: always
 
 spring:
-  application:
-    name: flowable-engine-service
-
   datasource:
-    url: jdbc:mysql://localhost:3307/flowable_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://172.20.0.2:3306/workflow_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&connectionCollation=utf8mb4_unicode_ci
     username: root
-    password: Flow@2026#Db!Str0ng
+    password: 8NOG8HweNIY4kg0mWBqx
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
 
-  flyway:
-    enabled: false
-    locations: classpath:db/migration
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
 
-# Flowable 配置
-flowable:
-  async-executor-activate: false
-  database-schema-update: true
-  check-process-definitions: true
-  activity-font-name: "宋体"
-  label-font-name: "宋体"
-
-# MyBatis 配置
 mybatis:
   mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.workflow.entity
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: alpha
+    tagsSorter: alpha
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  show-actuator: false
+
 logging:
   level:
     com.example.workflow: DEBUG
-    org.flowable: INFO
+    org.flowable: DEBUG

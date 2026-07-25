@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.workflow.mapper.FormSchemaMapper">
+    <insert id="insert" parameterType="com.example.workflow.entity.WfFormSchema">
+        INSERT INTO wf_form_schema (id, schema_name, schema_key, schema_version, json_schema, ui_schema, fields_config, applicable_orgs, status, created_by)
+        VALUES (#{id}, #{schemaName}, #{schemaKey}, #{schemaVersion}, #{jsonSchema}, #{uiSchema}, #{fieldsConfig}, #{applicableOrgs}, #{status}, #{createdBy})
+    </insert>
+    <select id="selectById" resultType="com.example.workflow.entity.WfFormSchema">
+        SELECT * FROM wf_form_schema WHERE id = #{id}
+    </select>
+    <select id="selectByKey" resultType="com.example.workflow.entity.WfFormSchema">
+        SELECT * FROM wf_form_schema WHERE schema_key = #{key} AND status = 1 ORDER BY schema_version DESC LIMIT 1
+    </select>
+    <select id="selectList" resultType="com.example.workflow.entity.WfFormSchema">
+        SELECT * FROM wf_form_schema WHERE 1=1
+        <if test="status != null">AND status = #{status}</if>
+        <if test="schemaKey != null and schemaKey != ''">AND schema_key LIKE CONCAT('%', #{schemaKey}, '%')</if>
+        ORDER BY created_at DESC
+    </select>
+    <update id="update">
+        UPDATE wf_form_schema SET
+            schema_name = #{schema.schemaName},
+            json_schema = #{schema.jsonSchema},
+            ui_schema = #{schema.uiSchema},
+            fields_config = #{schema.fieldsConfig},
+            status = #{schema.status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+    <delete id="deleteById">
+        DELETE FROM wf_form_schema WHERE id = #{id}
+    </delete>
+</mapper>

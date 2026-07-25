@@ -2,14 +2,56 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.workflow.mapper.OrgMapper">
-    <select id="selectDescendantTenantIds" resultType="string">
+
+    <!-- 递归查询某机构及其所有下级机构ID -->
+    <select id="selectDescendantOrgIds" resultType="string">
         WITH RECURSIVE org_tree AS (
-            SELECT id, tenant_id FROM sys_org WHERE tenant_id = #{currentTenantId}
+            SELECT id FROM sys_org WHERE id = #{orgId}
             UNION ALL
-            SELECT o.id, o.tenant_id
-            FROM sys_org o
+            SELECT o.id FROM sys_org o
             INNER JOIN org_tree t ON o.parent_id = t.id
         )
-        SELECT tenant_id FROM org_tree
+        SELECT id FROM org_tree
     </select>
+
+    <!-- 递归查询某机构的所有直接下级（不含自身） -->
+    <select id="selectDirectChildren" resultType="string">
+        WITH RECURSIVE org_tree AS (
+            SELECT id, parent_id FROM sys_org WHERE id = #{orgId}
+            UNION ALL
+            SELECT o.id, o.parent_id FROM sys_org o
+            INNER JOIN org_tree t ON o.parent_id = t.id
+        )
+        SELECT id FROM org_tree WHERE id != #{orgId}
+    </select>
+
+    <!-- 查询机构详情 -->
+    <select id="selectById" resultType="com.example.workflow.entity.SysOrg">
+        SELECT * FROM sys_org WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有顶级机构 -->
+    <select id="selectRootOrgs" resultType="com.example.workflow.entity.SysOrg">
+        SELECT * FROM sys_org WHERE parent_id = '0' AND status = 1 ORDER BY sort_order
+    </select>
+
+    <!-- 查询某机构的所有子孙节点（含层级信息） -->
+    <select id="selectAllDescendants" resultType="com.example.workflow.entity.SysOrg">
+        WITH RECURSIVE org_tree AS (
+            SELECT id, org_name, parent_id, org_level, org_type, org_code, 1 as depth
+            FROM sys_org WHERE id = #{orgId} AND status = 1
+            UNION ALL
+            SELECT o.id, o.org_name, o.parent_id, o.org_level, o.org_type, o.org_code, t.depth + 1
+            FROM sys_org o
+            INNER JOIN org_tree t ON o.parent_id = t.id
+            WHERE o.status = 1
+        )
+        SELECT * FROM org_tree
+    </select>
+
+    <!-- 根据parent_id查询子机构列表 -->
+    <select id="selectByParentId" resultType="com.example.workflow.entity.SysOrg">
+        SELECT * FROM sys_org WHERE parent_id = #{parentId} AND status = 1 ORDER BY sort_order
+    </select>
+
 </mapper>
