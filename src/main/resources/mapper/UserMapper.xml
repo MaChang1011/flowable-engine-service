@@ -11,4 +11,20 @@
     <select id="selectOrgIdById" resultType="string">
         SELECT org_id FROM sys_user WHERE id = #{userId} AND status = 1
     </select>
+
+    <select id="selectByIdIncludeDisabled" resultType="com.example.workflow.entity.SysUser">
+        SELECT * FROM sys_user WHERE id = #{userId}
+    </select>
+
+    <update id="updateOrg">
+        UPDATE sys_user SET org_id = #{orgId} WHERE id = #{userId}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE sys_user SET status = #{status} WHERE id = #{userId}
+    </update>
+
+    <select id="selectByOrgId" resultType="com.example.workflow.entity.SysUser">
+        SELECT * FROM sys_user WHERE org_id = #{orgId} AND status = 1
+    </select>
 </mapper>
