@@ -12,61 +12,110 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Flowable查询助手 — 自动注入租户/机构过滤条件
+ * Flowable 查询助手 — 按机构权限自动注入 org 过滤条件
+ * 
+ * 核心原理：每个流程实例启动时写入 applicantOrgId 变量，
+ * 查询时按当前用户的 accessibleOrgIds 过滤，实现数据隔离。
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class FlowableQueryHelper {
 
-    private final OrgService orgService;
+    private static final String ORG_VAR = "applicantOrgId";
 
-    public void applyTenantFilter(ProcessInstanceQuery query) {
-        injectOrgFilter(query);
-    }
+    /**
+     * 给 TaskQuery 加上 org 权限过滤
+     * 只返回 applicantOrgId 在用户可访问机构列表中的任务
+     */
+    public void applyOrgFilter(TaskQuery query) {
+        List<String> orgIds = getAccessibleOrgs();
+        if (orgIds == null || orgIds.isEmpty()) return;
 
-    public void applyTenantFilter(TaskQuery query) {
-        injectOrgFilter(query);
-    }
-
-    public void applyTenantFilter(HistoricProcessInstanceQuery query) {
-        injectOrgFilter(query);
-    }
-
-    public void applyTenantFilter(HistoricTaskInstanceQuery query) {
-        injectOrgFilter(query);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void injectOrgFilter(Object query) {
-        List<String> accessibleOrgIds = PermissionContext.getAccessibleOrgIds();
-        if (accessibleOrgIds == null || accessibleOrgIds.isEmpty()) return;
-
-        if (accessibleOrgIds.size() == 1) {
-            String tid = accessibleOrgIds.get(0);
-            if (query instanceof ProcessInstanceQuery q) q.processInstanceTenantId(tid);
-            else if (query instanceof TaskQuery q) q.taskTenantId(tid);
-            else if (query instanceof HistoricProcessInstanceQuery q) q.processInstanceTenantId(tid);
-            else if (query instanceof HistoricTaskInstanceQuery q) q.taskTenantId(tid);
+        if (orgIds.size() == 1) {
+            query.processVariableValueEquals(ORG_VAR, orgIds.get(0));
             return;
         }
-
-        if (query instanceof ProcessInstanceQuery q) {
-            q.or().processInstanceTenantId(accessibleOrgIds.get(0));
-            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().processInstanceTenantId(accessibleOrgIds.get(i));
-            q.endOr();
-        } else if (query instanceof TaskQuery q) {
-            q.or().taskTenantId(accessibleOrgIds.get(0));
-            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().taskTenantId(accessibleOrgIds.get(i));
-            q.endOr();
-        } else if (query instanceof HistoricProcessInstanceQuery q) {
-            q.or().processInstanceTenantId(accessibleOrgIds.get(0));
-            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().processInstanceTenantId(accessibleOrgIds.get(i));
-            q.endOr();
-        } else if (query instanceof HistoricTaskInstanceQuery q) {
-            q.or().taskTenantId(accessibleOrgIds.get(0));
-            for (int i = 1; i < accessibleOrgIds.size(); i++) q.or().taskTenantId(accessibleOrgIds.get(i));
-            q.endOr();
+        query.or();
+        for (String orgId : orgIds) {
+            query.processVariableValueEquals(ORG_VAR, orgId);
         }
+        query.endOr();
+    }
+
+    /**
+     * 给 ProcessInstanceQuery 加上 org 权限过滤
+     */
+    public void applyOrgFilter(ProcessInstanceQuery query) {
+        List<String> orgIds = getAccessibleOrgs();
+        if (orgIds == null || orgIds.isEmpty()) return;
+
+        if (orgIds.size() == 1) {
+            query.variableValueEquals(ORG_VAR, orgIds.get(0));
+            return;
+        }
+        query.or();
+        for (String orgId : orgIds) {
+            query.variableValueEquals(ORG_VAR, orgId);
+        }
+        query.endOr();
+    }
+
+    /**
+     * 给 HistoricProcessInstanceQuery 加上 org 权限过滤
+     */
+    public void applyOrgFilter(HistoricProcessInstanceQuery query) {
+        List<String> orgIds = getAccessibleOrgs();
+        if (orgIds == null || orgIds.isEmpty()) return;
+
+        if (orgIds.size() == 1) {
+            query.variableValueEquals(ORG_VAR, orgIds.get(0));
+            return;
+        }
+        query.or();
+        for (String orgId : orgIds) {
+            query.variableValueEquals(ORG_VAR, orgId);
+        }
+        query.endOr();
+    }
+
+    /**
+     * 给 HistoricTaskInstanceQuery 加上 org 权限过滤
+     */
+    public void applyOrgFilter(HistoricTaskInstanceQuery query) {
+        List<String> orgIds = getAccessibleOrgs();
+        if (orgIds == null || orgIds.isEmpty()) return;
+
+        if (orgIds.size() == 1) {
+            query.processVariableValueEquals(ORG_VAR, orgIds.get(0));
+            return;
+        }
+        query.or();
+        for (String orgId : orgIds) {
+            query.processVariableValueEquals(ORG_VAR, orgId);
+        }
+        query.endOr();
+    }
+
+    // ===== 兼容旧方法名 =====
+    /** @deprecated 使用 applyOrgFilter */
+    @Deprecated
+    public void applyTenantFilter(TaskQuery query) { applyOrgFilter(query); }
+    /** @deprecated 使用 applyOrgFilter */
+    @Deprecated
+    public void applyTenantFilter(ProcessInstanceQuery query) { applyOrgFilter(query); }
+    /** @deprecated 使用 applyOrgFilter */
+    @Deprecated
+    public void applyTenantFilter(HistoricProcessInstanceQuery query) { applyOrgFilter(query); }
+    /** @deprecated 使用 applyOrgFilter */
+    @Deprecated
+    public void applyTenantFilter(HistoricTaskInstanceQuery query) { applyOrgFilter(query); }
+
+    private List<String> getAccessibleOrgs() {
+        List<String> orgIds = PermissionContext.getAccessibleOrgIds();
+        if (orgIds != null && !orgIds.isEmpty()) {
+            log.debug("权限过滤: applicableOrgs={}", orgIds);
+        }
+        return orgIds;
     }
 }
