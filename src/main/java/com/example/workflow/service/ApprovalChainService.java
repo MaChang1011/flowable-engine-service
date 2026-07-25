@@ -74,7 +74,13 @@ public class ApprovalChainService {
      */
     public Map<String, Object> chainToVariables(List<Map<String, Object>> chain) {
         Map<String, Object> vars = new LinkedHashMap<>();
-        vars.put("approvalChain", chain);
+        // 序列化为 JSON 字符串，避免 Flowable 序列化复杂对象失败
+        try {
+            vars.put("approvalChain", objectMapper.writeValueAsString(chain));
+        } catch (Exception e) {
+            log.error("审批链序列化失败", e);
+            vars.put("approvalChain", "[]");
+        }
 
         // 提取每级审批人表达式
         List<String> assigneeExprs = new ArrayList<>();
@@ -83,8 +89,8 @@ public class ApprovalChainService {
             assigneeExprs.add((String) node.getOrDefault("assigneeExpr", ""));
             nodeNames.add((String) node.getOrDefault("nodeName", ""));
         }
-        vars.put("approvalAssignees", assigneeExprs);
-        vars.put("approvalNodeNames", nodeNames);
+        vars.put("approvalAssignees", objectMapper.valueToTree(assigneeExprs).toString());
+        vars.put("approvalNodeNames", objectMapper.valueToTree(nodeNames).toString());
         vars.put("approvalLevels", chain.size());
         vars.put("currentApprovalLevel", 0);
 

@@ -12,7 +12,7 @@
 
     <update id="updateVote">
         UPDATE wf_committee_vote SET vote = #{vote}, comment = #{comment}, voted_at = NOW()
-        WHERE sub_task_id = #{subTaskId}
+        WHERE id = #{voteId}
     </update>
 
     <select id="selectByTaskId" resultType="com.example.workflow.entity.WfCommitteeVote">

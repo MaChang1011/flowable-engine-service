@@ -85,12 +85,7 @@ public class CommitteeVoteService {
             throw new IllegalArgumentException("委员已投票: " + memberId);
         }
 
-        voteMapper.updateVote(target.getSubTaskId(), vote, comment);
-
-        // 完成该委员的子任务
-        if (target.getSubTaskId() != null) {
-            taskService.complete(target.getSubTaskId());
-        }
+        voteMapper.updateVote(target.getId(), vote, comment);
 
         // 重新统计
         return tallyVotes(taskId, threshold);
@@ -109,12 +104,15 @@ public class CommitteeVoteService {
         long abstained = records.stream().filter(v -> "ABSTAIN".equals(v.getVote())).count();
         long voted = approved + rejected + abstained;
 
-        // 有效票（不含弃权）= 已投票 - 弃权
-        long validVotes = voted - abstained;
-        boolean passed = validVotes > 0 && ((double) approved / validVotes) >= threshold;
+        // 通过条件：同意票占总人数比例 >= 阈值
+        boolean passed = ((double) approved / total) >= threshold;
+        // 无法通过：剩余未投票全投同意也不够
+        double maxPossible = ((double) (approved + (total - voted)) / total);
+        boolean impossible = maxPossible < threshold;
 
-        // 如果已通过或已否决，自动完成父任务
-        if (passed || rejected > (total - abstained) / 2) {
+        // 自动完成：通过 / 无法通过 / 全部投完
+        boolean shouldFinish = passed || impossible || voted == total;
+        if (shouldFinish) {
             completeCommitteeTask(taskId, passed);
         }
 
@@ -124,10 +122,10 @@ public class CommitteeVoteService {
         result.put("approved", approved);
         result.put("rejected", rejected);
         result.put("abstained", abstained);
-        result.put("validVotes", validVotes);
+        result.put("voted", voted);
         result.put("threshold", threshold);
         result.put("passed", passed);
-        result.put("finished", passed || (voted == total));
+        result.put("finished", shouldFinish);
         return result;
     }
 

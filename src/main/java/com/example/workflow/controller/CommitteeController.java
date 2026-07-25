@@ -49,8 +49,8 @@ public class CommitteeController {
     @Operation(summary = "查询投票统计")
     @GetMapping("/{taskId}/tally")
     public Result<Map<String, Object>> tally(@PathVariable String taskId,
-                                              @RequestParam(defaultValue = "0.5") double threshold) {
-        return Result.success(committeeService.tallyVotes(taskId, threshold));
+                                              @RequestParam(defaultValue = "0.5") String threshold) {
+        return Result.success(committeeService.tallyVotes(taskId, Double.parseDouble(threshold)));
     }
 
     @Operation(summary = "查询投票详情")

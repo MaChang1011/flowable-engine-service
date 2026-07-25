@@ -29,6 +29,11 @@ public class RecusalService {
      * @return 如果触发了回避返回 true，正常审批返回 false
      */
     public boolean checkAndHandleRecusal(Task task, String currentUserId) {
+        // 跳过申请提交节点（申请人自己提交是正常的）
+        if ("apply".equals(task.getTaskDefinitionKey())) {
+            return false;
+        }
+
         // 获取流程申请人
         Object applicantObj = taskService.getVariable(task.getId(), "applicant");
         if (applicantObj == null) return false;

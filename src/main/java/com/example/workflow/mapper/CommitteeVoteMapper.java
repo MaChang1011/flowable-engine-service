@@ -11,7 +11,7 @@ public interface CommitteeVoteMapper {
 
     int insert(WfCommitteeVote vote);
 
-    int updateVote(@Param("subTaskId") String subTaskId,
+    int updateVote(@Param("voteId") String voteId,
                    @Param("vote") String vote,
                    @Param("comment") String comment);
 

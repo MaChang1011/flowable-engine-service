@@ -5,6 +5,7 @@ import com.example.workflow.dto.vo.ProcessInstanceVO;
 import com.example.workflow.dto.vo.TaskVO;
 import com.example.workflow.security.SecurityUtils;
 import com.example.workflow.service.FlowableQueryHelper;
+import com.example.workflow.service.WorkflowFacade;
 import com.example.workflow.service.WorkflowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class WorkflowController {
 
     private final WorkflowService workflowService;
+    private final WorkflowFacade workflowFacade;
     private final FlowableQueryHelper queryHelper;
 
     // ==================== 流程启动 ====================
@@ -44,21 +46,7 @@ public class WorkflowController {
      */
     @PostMapping("/start")
     public Result<Map<String, Object>> start(@RequestBody StartProcessRequest req) {
-        String tenantId = StringUtils.hasText(req.getTenantId())
-                ? req.getTenantId()
-                : SecurityUtils.getCurrentTenantId();
-
-        String processInstanceId = workflowService.startProcess(
-                req.getProcessDefinitionKey(),
-                req.getBusinessKey(),
-                tenantId,
-                req.getVariables()
-        );
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("processInstanceId", processInstanceId);
-        result.put("businessKey", req.getBusinessKey());
-        result.put("processDefinitionKey", req.getProcessDefinitionKey());
+        Map<String, Object> result = workflowFacade.startProcess(req);
         return Result.success(result);
     }
 
@@ -76,11 +64,7 @@ public class WorkflowController {
      */
     @PostMapping("/submit")
     public Result<Void> submit(@RequestBody CompleteTaskRequest req) {
-        workflowService.submitTask(
-                req.getTaskId(),
-                req.getVariables(),
-                req.getComment()
-        );
+        workflowFacade.submitTask(req);
         return Result.success();
     }
 
