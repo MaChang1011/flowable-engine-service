@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.workflow.mapper.CommitteeVoteMapper">
+
+    <insert id="insert">
+        INSERT INTO wf_committee_vote (id, process_instance_id, task_id, sub_task_id,
+            committee_name, committee_member_id, vote, comment, voted_at)
+        VALUES (#{id}, #{processInstanceId}, #{taskId}, #{subTaskId},
+            #{committeeName}, #{committeeMemberId}, #{vote}, #{comment}, #{votedAt})
+    </insert>
+
+    <update id="updateVote">
+        UPDATE wf_committee_vote SET vote = #{vote}, comment = #{comment}, voted_at = NOW()
+        WHERE sub_task_id = #{subTaskId}
+    </update>
+
+    <select id="selectByTaskId" resultType="com.example.workflow.entity.WfCommitteeVote">
+        SELECT * FROM wf_committee_vote WHERE task_id = #{taskId} ORDER BY voted_at
+    </select>
+
+    <select id="selectByProcessInstanceId" resultType="com.example.workflow.entity.WfCommitteeVote">
+        SELECT * FROM wf_committee_vote WHERE process_instance_id = #{processInstanceId} ORDER BY voted_at
+    </select>
+
+    <select id="countByTaskAndVote" resultType="int">
+        SELECT COUNT(*) FROM wf_committee_vote WHERE task_id = #{taskId} AND vote = #{vote}
+    </select>
+</mapper>

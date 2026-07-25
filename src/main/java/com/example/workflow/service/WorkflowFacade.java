@@ -37,6 +37,8 @@ public class WorkflowFacade {
     private final IdentityService identityService;
     private final FlowableQueryHelper queryHelper;
     private final BusinessDataMapper businessDataMapper;
+    private final ApprovalChainService approvalChainService;
+    private final RecusalService recusalService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
@@ -54,6 +56,12 @@ public class WorkflowFacade {
         Map<String, Object> variables = req.getVariables() != null ? req.getVariables() : new HashMap<>();
         variables.put("applicant", applicantId);
         variables.put("applicantOrgId", applicantOrgId);
+
+        // === 动态审批链 ===
+        List<Map<String, Object>> chain = approvalChainService.buildChain(processDefinitionKey, variables);
+        variables.putAll(approvalChainService.chainToVariables(chain));
+        log.info("动态审批链: levels={}, chain={}", chain.size(),
+                chain.stream().map(n -> n.get("nodeName")).toList());
 
         ProcessInstance instance = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionKey(processDefinitionKey)
@@ -104,6 +112,13 @@ public class WorkflowFacade {
     public void submitTask(CompleteTaskRequest req) {
         Task task = taskService.createTaskQuery().taskId(req.getTaskId()).singleResult();
         if (task == null) throw new IllegalArgumentException("任务不存在: " + req.getTaskId());
+
+        // === 回避检查 ===
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        if (recusalService.checkAndHandleRecusal(task, currentUserId)) {
+            log.info("回避规则触发，任务自动完成: taskId={}", req.getTaskId());
+            return;
+        }
 
         String processInstanceId = task.getProcessInstanceId();
         if (StringUtils.hasText(req.getComment())) {
