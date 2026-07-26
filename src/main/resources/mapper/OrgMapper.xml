@@ -56,8 +56,8 @@
 
     <!-- 创建机构 -->
     <insert id="insert" parameterType="com.example.workflow.entity.SysOrg" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_org (org_name, parent_id, org_level, org_type, org_code, sort_order, status, created_at, updated_at)
-        VALUES (#{orgName}, #{parentId}, #{orgLevel}, #{orgType}, #{orgCode}, #{sortOrder}, #{status}, NOW(), NOW())
+        INSERT INTO sys_org (id, org_name, parent_id, org_level, org_type, org_code, sort_order, status, created_at, updated_at)
+        VALUES (#{id}, #{orgName}, #{parentId}, #{orgLevel}, #{orgType}, #{orgCode}, #{sortOrder}, #{status}, NOW(), NOW())
     </insert>
 
     <!-- 更新机构 -->

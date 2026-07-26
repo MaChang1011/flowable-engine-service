@@ -11,8 +11,8 @@
 
     <!-- 创建角色 -->
     <insert id="insert" parameterType="com.example.workflow.entity.SysRole" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_role (role_name, role_code, scope_type, scope_org_ids, description, status, created_at, updated_at)
-        VALUES (#{roleName}, #{roleCode}, #{scopeType}, #{scopeOrgIds}, #{description}, #{status}, NOW(), NOW())
+        INSERT INTO sys_role (id, role_name, role_code, scope_type, scope_org_ids, description, created_at, updated_at)
+        VALUES (#{id}, #{roleName}, #{roleCode}, #{scopeType}, #{scopeOrgIds}, #{description}, NOW(), NOW())
     </insert>
 
     <!-- 更新角色 -->
@@ -23,7 +23,6 @@
             scope_type = COALESCE(#{scopeType}, scope_type),
             scope_org_ids = COALESCE(#{scopeOrgIds}, scope_org_ids),
             description = COALESCE(#{description}, description),
-            status = COALESCE(#{status}, status),
             updated_at = NOW()
         WHERE id = #{id}
     </update>

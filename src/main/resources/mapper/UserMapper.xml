@@ -35,8 +35,8 @@
 
     <!-- 创建用户 -->
     <insert id="insert" parameterType="com.example.workflow.entity.SysUser" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_user (username, password, real_name, org_id, role_ids, email, phone, status, created_at, updated_at)
-        VALUES (#{username}, #{password}, #{realName}, #{orgId}, #{roleIds}, #{email}, #{phone}, #{status}, NOW(), NOW())
+        INSERT INTO sys_user (id, username, password, real_name, org_id, role_ids, email, phone, status, created_at, updated_at)
+        VALUES (#{id}, #{username}, #{password}, #{realName}, #{orgId}, #{roleIds}, #{email}, #{phone}, #{status}, NOW(), NOW())
     </insert>
 
     <!-- 更新用户 -->

@@ -56,6 +56,7 @@ public class AuthController {
     @PostMapping("/users")
     public Result<SysUser> createUser(@RequestBody UserCreateRequest req) {
         SysUser user = new SysUser();
+        user.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
         user.setUsername(req.getUsername());
         user.setPassword(DigestUtils.md5DigestAsHex(req.getPassword().getBytes(StandardCharsets.UTF_8)));
         user.setRealName(req.getRealName());
@@ -104,10 +105,25 @@ public class AuthController {
     @PostMapping("/orgs")
     public Result<SysOrg> createOrg(@RequestBody OrgCreateRequest req) {
         SysOrg org = new SysOrg();
+        org.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
         org.setOrgName(req.getOrgName());
         org.setParentId(req.getParentId());
         org.setSortOrder(req.getSortOrder());
         org.setStatus(1);
+        
+        // 自动计算 org_level 和 org_code
+        if ("0".equals(req.getParentId()) || req.getParentId() == null) {
+            org.setOrgLevel(1);
+            org.setOrgType("GROUP");
+            org.setOrgCode("GRP_" + System.currentTimeMillis());
+        } else {
+            SysOrg parent = orgMapper.selectById(req.getParentId());
+            int parentLevel = parent != null && parent.getOrgLevel() != null ? parent.getOrgLevel() : 1;
+            org.setOrgLevel(parentLevel + 1);
+            org.setOrgType(parent != null && parent.getOrgType() != null ? parent.getOrgType() : "DEPT");
+            org.setOrgCode(parent != null && parent.getOrgCode() != null ? parent.getOrgCode() + "_" + System.currentTimeMillis() : "GRP_" + System.currentTimeMillis());
+        }
+        
         orgMapper.insert(org);
         return Result.success(org);
     }
@@ -144,6 +160,7 @@ public class AuthController {
     @PostMapping("/roles")
     public Result<SysRole> createRole(@RequestBody RoleCreateRequest req) {
         SysRole role = new SysRole();
+        role.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
         role.setRoleName(req.getRoleName());
         role.setRoleCode(req.getCode());
         role.setScopeType(req.getScopeType());
