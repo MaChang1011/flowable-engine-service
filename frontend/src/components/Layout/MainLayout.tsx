@@ -10,6 +10,7 @@ import {
   FileTextOutlined,
   InboxOutlined,
   LogoutOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -17,12 +18,14 @@ const { Header, Sider, Content } = Layout;
 
 const menuItems = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '工作台' },
-  { key: '/org-manage', icon: <TeamOutlined />, label: '组织管理' },
+  { key: '/monitor', icon: <EyeOutlined />, label: '流程监控' },
+  { key: '/task-todo', icon: <InboxOutlined />, label: '待办任务' },
+  { key: '/process-start', icon: <InboxOutlined />, label: '发起流程' },
+  { type: 'divider' },
+  { key: '/org-manage', icon: <TeamOutlined />, label: '机构管理' },
   { key: '/role-manage', icon: <SettingOutlined />, label: '角色管理' },
   { key: '/user-manage', icon: <UserOutlined />, label: '用户管理' },
   { key: '/process-def', icon: <FileTextOutlined />, label: '流程定义' },
-  { key: '/task-todo', icon: <InboxOutlined />, label: '待办任务' },
-  { key: '/process-start', icon: <InboxOutlined />, label: '发起流程' },
 ];
 
 const MainLayout = () => {

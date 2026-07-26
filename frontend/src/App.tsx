@@ -9,6 +9,7 @@ import UserManage from '@/pages/UserManage';
 import ProcessDef from '@/pages/ProcessDef';
 import TaskTodo from '@/pages/TaskTodo';
 import ProcessStart from '@/pages/ProcessStart';
+import Monitor from '@/pages/Monitor';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,6 +32,7 @@ const App = () => {
           <Route path="/process-def" element={<ProcessDef />} />
           <Route path="/task-todo" element={<TaskTodo />} />
           <Route path="/process-start" element={<ProcessStart />} />
+          <Route path="/monitor" element={<Monitor />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       ) : (
