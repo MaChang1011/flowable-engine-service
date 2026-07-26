@@ -21,4 +21,19 @@ public interface UserMapper {
     List<SysUser> selectByOrgId(@Param("orgId") String orgId);
 
     SysUser selectByIdIncludeDisabled(@Param("userId") String userId);
+
+    /** 登录用：按用户名查用户（含密码） */
+    SysUser selectByUsernameWithPassword(@Param("username") String username);
+
+    /** 创建用户 */
+    int insert(SysUser user);
+
+    /** 更新用户 */
+    int update(SysUser user);
+
+    /** 删除用户（物理删除） */
+    int deleteById(@Param("id") String id);
+
+    /** 分页查询用户列表 */
+    List<SysUser> selectAll();
 }

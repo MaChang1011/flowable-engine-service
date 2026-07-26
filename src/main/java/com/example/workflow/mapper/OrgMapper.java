@@ -25,4 +25,16 @@ public interface OrgMapper {
 
     /** 根据parent_id查询子机构列表 */
     List<SysOrg> selectByParentId(@Param("parentId") String parentId);
+
+    /** 创建机构 */
+    int insert(SysOrg org);
+
+    /** 更新机构 */
+    int update(SysOrg org);
+
+    /** 删除机构 */
+    int deleteById(@Param("id") String id);
+
+    /** 查询所有顶级机构 */
+    List<SysOrg> selectAll();
 }

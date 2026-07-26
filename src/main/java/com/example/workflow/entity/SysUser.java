@@ -12,6 +12,7 @@ public class SysUser {
     private String roleIds;
     private String email;
     private String phone;
+    private String password;
     private Integer status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

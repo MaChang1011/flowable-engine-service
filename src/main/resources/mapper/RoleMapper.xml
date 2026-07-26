@@ -8,4 +8,34 @@
     <select id="selectByCode" resultType="com.example.workflow.entity.SysRole">
         SELECT * FROM sys_role WHERE role_code = #{code}
     </select>
+
+    <!-- 创建角色 -->
+    <insert id="insert" parameterType="com.example.workflow.entity.SysRole" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_role (role_name, role_code, scope_type, scope_org_ids, description, status, created_at, updated_at)
+        VALUES (#{roleName}, #{roleCode}, #{scopeType}, #{scopeOrgIds}, #{description}, #{status}, NOW(), NOW())
+    </insert>
+
+    <!-- 更新角色 -->
+    <update id="update" parameterType="com.example.workflow.entity.SysRole">
+        UPDATE sys_role SET
+            role_name = COALESCE(#{roleName}, role_name),
+            role_code = COALESCE(#{roleCode}, role_code),
+            scope_type = COALESCE(#{scopeType}, scope_type),
+            scope_org_ids = COALESCE(#{scopeOrgIds}, scope_org_ids),
+            description = COALESCE(#{description}, description),
+            status = COALESCE(#{status}, status),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除角色 -->
+    <delete id="deleteById">
+        DELETE FROM sys_role WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有角色 -->
+    <select id="selectAll" resultType="com.example.workflow.entity.SysRole">
+        SELECT * FROM sys_role ORDER BY created_at DESC
+    </select>
+
 </mapper>

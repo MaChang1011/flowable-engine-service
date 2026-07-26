@@ -109,6 +109,13 @@ public class PermService {
     }
 
     /**
+     * 根据参数直接计算可访问机构列表（供 AuthService 调用）
+     */
+    public List<String> calculateAccessibleOrgIdsDirect(String currentOrgId, String scopeType, String scopeOrgIds) {
+        return calculateAccessibleOrgIds(currentOrgId, scopeType, scopeOrgIds);
+    }
+
+    /**
      * 判断目标机构是否在用户权限范围内
      */
     public boolean isOrgAccessible(String targetOrgId) {

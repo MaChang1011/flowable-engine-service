@@ -27,4 +27,38 @@
     <select id="selectByOrgId" resultType="com.example.workflow.entity.SysUser">
         SELECT * FROM sys_user WHERE org_id = #{orgId} AND status = 1
     </select>
+
+    <!-- 登录用：按用户名查（含密码） -->
+    <select id="selectByUsernameWithPassword" resultType="com.example.workflow.entity.SysUser">
+        SELECT * FROM sys_user WHERE username = #{username}
+    </select>
+
+    <!-- 创建用户 -->
+    <insert id="insert" parameterType="com.example.workflow.entity.SysUser" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_user (username, password, real_name, org_id, role_ids, email, phone, status, created_at, updated_at)
+        VALUES (#{username}, #{password}, #{realName}, #{orgId}, #{roleIds}, #{email}, #{phone}, #{status}, NOW(), NOW())
+    </insert>
+
+    <!-- 更新用户 -->
+    <update id="update" parameterType="com.example.workflow.entity.SysUser">
+        UPDATE sys_user SET
+            real_name = COALESCE(#{realName}, real_name),
+            org_id = COALESCE(#{orgId}, org_id),
+            role_ids = COALESCE(#{roleIds}, role_ids),
+            email = COALESCE(#{email}, email),
+            phone = COALESCE(#{phone}, phone),
+            status = COALESCE(#{status}, status),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteById">
+        DELETE FROM sys_user WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有用户 -->
+    <select id="selectAll" resultType="com.example.workflow.entity.SysUser">
+        SELECT * FROM sys_user ORDER BY created_at DESC
+    </select>
 </mapper>

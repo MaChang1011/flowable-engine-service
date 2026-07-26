@@ -54,4 +54,34 @@
         SELECT * FROM sys_org WHERE parent_id = #{parentId} AND status = 1 ORDER BY sort_order
     </select>
 
+    <!-- 创建机构 -->
+    <insert id="insert" parameterType="com.example.workflow.entity.SysOrg" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_org (org_name, parent_id, org_level, org_type, org_code, sort_order, status, created_at, updated_at)
+        VALUES (#{orgName}, #{parentId}, #{orgLevel}, #{orgType}, #{orgCode}, #{sortOrder}, #{status}, NOW(), NOW())
+    </insert>
+
+    <!-- 更新机构 -->
+    <update id="update" parameterType="com.example.workflow.entity.SysOrg">
+        UPDATE sys_org SET
+            org_name = COALESCE(#{orgName}, org_name),
+            parent_id = COALESCE(#{parentId}, parent_id),
+            org_level = COALESCE(#{orgLevel}, org_level),
+            org_type = COALESCE(#{orgType}, org_type),
+            org_code = COALESCE(#{orgCode}, org_code),
+            sort_order = COALESCE(#{sortOrder}, sort_order),
+            status = COALESCE(#{status}, status),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除机构 -->
+    <delete id="deleteById">
+        DELETE FROM sys_org WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有机构（含已禁用） -->
+    <select id="selectAll" resultType="com.example.workflow.entity.SysOrg">
+        SELECT * FROM sys_org ORDER BY sort_order
+    </select>
+
 </mapper>
