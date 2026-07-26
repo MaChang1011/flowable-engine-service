@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Layout, Menu, Typography } from 'antd';
+import { Button, Layout, Menu, Typography, type MenuProps } from 'antd';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import {
@@ -11,21 +11,35 @@ import {
   InboxOutlined,
   LogoutOutlined,
   EyeOutlined,
+  UnorderedListOutlined,
+  FormOutlined,
+  ProfileOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Header, Sider, Content } = Layout;
 
-const menuItems = [
+const menuItems: MenuProps['items'] = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '工作台' },
   { key: '/monitor', icon: <EyeOutlined />, label: '流程监控' },
   { key: '/task-todo', icon: <InboxOutlined />, label: '待办任务' },
-  { key: '/process-start', icon: <InboxOutlined />, label: '发起流程' },
-  { type: 'divider' },
+  { key: '/process-start', icon: <FormOutlined />, label: '发起流程' },
+  { type: 'divider' as const },
+  { key: '/process-manage', icon: <UnorderedListOutlined />, label: '流程实例管理' },
+  { key: '/process-def-manage', icon: <ProfileOutlined />, label: '流程定义管理' },
+  { key: '/approval-template', icon: <FileTextOutlined />, label: '审批模板' },
+  { key: '/form-schema-manage', icon: <FileTextOutlined />, label: '表单设计' },
+  { key: '/historic', icon: <ClockCircleOutlined />, label: '历史记录' },
+  { key: '/committee', icon: <TeamOutlined />, label: '委员会投票' },
+  { key: '/escalation', icon: <ExclamationCircleOutlined />, label: '超时升级' },
+  { key: '/user-lifecycle', icon: <SwapOutlined />, label: '用户交接' },
+  { type: 'divider' as const },
   { key: '/org-manage', icon: <TeamOutlined />, label: '机构管理' },
   { key: '/role-manage', icon: <SettingOutlined />, label: '角色管理' },
   { key: '/user-manage', icon: <UserOutlined />, label: '用户管理' },
-  { key: '/process-def', icon: <FileTextOutlined />, label: '流程定义' },
 ];
 
 const MainLayout = () => {

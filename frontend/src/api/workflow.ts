@@ -38,3 +38,35 @@ export const startProcess = (processDefinitionKey: string, businessKey: string, 
 // 获取表单schema
 export const getFormSchema = (formSchemaId: string) =>
   request.get<any, { data: any }>(`/wf/form/schema/${formSchemaId}`);
+
+// 获取流程实例详情
+export const getInstanceDetail = (processInstanceId: string) =>
+  request.get<any, { data: any }>(`/workflow/instance/${processInstanceId}`);
+
+// 获取流程轨迹
+export const getProcessTrace = (processInstanceId: string) =>
+  request.get<any, { data: any }>(`/workflow/trace/${processInstanceId}`);
+
+// 获取当前活跃节点
+export const getActiveNodes = (processInstanceId: string) =>
+  request.get<any, { data: any }>(`/workflow/active-nodes/${processInstanceId}`);
+
+// 终止流程
+export const terminateProcess = (processInstanceId: string, reason?: string) =>
+  request.post<any, { data: null }>(`/workflow/terminate/${processInstanceId}`, { reason });
+
+// 挂起流程
+export const suspendProcess = (processInstanceId: string) =>
+  request.post<any, { data: null }>(`/workflow/suspend/${processInstanceId}`);
+
+// 激活流程
+export const activateProcess = (processInstanceId: string) =>
+  request.post<any, { data: null }>(`/workflow/activate/${processInstanceId}`);
+
+// 驳回到发起人
+export const rejectToStart = (taskId: string, variables?: Record<string, any>) =>
+  request.post<any, { data: null }>('/workflow/reject-to-start', { taskId, variables });
+
+// 驳回到指定节点
+export const rejectTask = (taskId: string, targetNodeId: string, variables?: Record<string, any>) =>
+  request.post<any, { data: null }>('/workflow/reject', { taskId, targetNodeId, variables });

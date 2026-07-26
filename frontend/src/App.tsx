@@ -10,6 +10,14 @@ import ProcessDef from '@/pages/ProcessDef';
 import TaskTodo from '@/pages/TaskTodo';
 import ProcessStart from '@/pages/ProcessStart';
 import Monitor from '@/pages/Monitor';
+import ProcessManage from '@/pages/ProcessManage';
+import ProcessDefManage from '@/pages/ProcessDefManage';
+import ApprovalTemplate from '@/pages/ApprovalTemplate';
+import FormSchemaManage from '@/pages/FormSchemaManage';
+import Historic from '@/pages/Historic';
+import Committee from '@/pages/Committee';
+import Escalation from '@/pages/Escalation';
+import UserLifecycle from '@/pages/UserLifecycle';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -33,6 +41,14 @@ const App = () => {
           <Route path="/task-todo" element={<TaskTodo />} />
           <Route path="/process-start" element={<ProcessStart />} />
           <Route path="/monitor" element={<Monitor />} />
+          <Route path="/process-manage" element={<ProcessManage />} />
+          <Route path="/process-def-manage" element={<ProcessDefManage />} />
+          <Route path="/approval-template" element={<ApprovalTemplate />} />
+          <Route path="/form-schema-manage" element={<FormSchemaManage />} />
+          <Route path="/historic" element={<Historic />} />
+          <Route path="/committee" element={<Committee />} />
+          <Route path="/escalation" element={<Escalation />} />
+          <Route path="/user-lifecycle" element={<UserLifecycle />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       ) : (
