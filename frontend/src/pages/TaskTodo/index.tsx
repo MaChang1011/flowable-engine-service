@@ -1,35 +1,44 @@
 import { useState, useEffect } from 'react';
 import {
-  Table, Button, Modal, Form, Input, Space, message, Tag, Select,
+  Table, Button, Modal, Form, Input, Space, message, Tag,
   Descriptions, Typography, Divider, Popconfirm, Tooltip, Dropdown,
+  Spin,
 } from 'antd';
 import {
   CheckCircleOutlined, CloseCircleOutlined, UserSwitchOutlined,
-  RetweetOutlined, ExclamationCircleOutlined, ClockCircleOutlined,
+  RetweetOutlined, ExclamationCircleOutlined,
   FileTextOutlined, DownOutlined,
 } from '@ant-design/icons';
 import {
   getTodoTasks, completeTask, rejectToNode, delegateTask, claimTask,
+  getTaskFormSchema,
 } from '@/api/task';
+import DynamicFormRenderer from '@/components/DynamicFormRenderer';
+import type { FormField } from '@/components/DynamicFormRenderer';
 import { useAuthStore } from '@/store/auth';
 
 const { Title } = Typography;
-const { Option } = Select;
 
 const TaskTodo = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentUser] = useState(() => useAuthStore.getState().user?.name || '');
+  const [currentUser] = useState(() => useAuthStore.getState().userInfo?.name || '');
 
   // Approve modal
   const [approveVisible, setApproveVisible] = useState(false);
   const [approveForm] = Form.useForm();
   const [approveTask, setApproveTask] = useState<any>(null);
+  const [approveSchemaLoading, setApproveSchemaLoading] = useState(false);
+  const [approveFields, setApproveFields] = useState<FormField[]>([]);
+  const [approveHasSchema, setApproveHasSchema] = useState(false);
 
   // Reject modal
   const [rejectVisible, setRejectVisible] = useState(false);
   const [rejectForm] = Form.useForm();
   const [rejectTask, setRejectTask] = useState<any>(null);
+  const [rejectSchemaLoading, setRejectSchemaLoading] = useState(false);
+  const [rejectFields, setRejectFields] = useState<FormField[]>([]);
+  const [rejectHasSchema, setRejectHasSchema] = useState(false);
 
   // Delegate modal
   const [delegateVisible, setDelegateVisible] = useState(false);
@@ -61,20 +70,56 @@ const TaskTodo = () => {
     }
   };
 
+  // ===== Load form schema for a task =====
+  const loadFormSchema = async (
+    taskId: string,
+    setLoading: (v: boolean) => void,
+    setFields: (v: FormField[]) => void,
+    setHasSchema: (v: boolean) => void,
+  ) => {
+    setLoading(true);
+    try {
+      const res = await getTaskFormSchema(taskId);
+      const d = res.data;
+      if (d.hasSchema) {
+        setFields(d.fields || []);
+        setHasSchema(true);
+      } else {
+        setFields([]);
+        setHasSchema(false);
+      }
+    } catch (e) {
+      console.error('加载表单Schema失败', e);
+      setFields([]);
+      setHasSchema(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ===== Approve =====
-  const openApprove = (record: any) => {
+  const openApprove = async (record: any) => {
     setApproveTask(record);
     approveForm.resetFields();
     setApproveVisible(true);
+    await loadFormSchema(record.taskId, setApproveSchemaLoading, setApproveFields, setApproveHasSchema);
   };
 
   const handleApprove = async () => {
     try {
       const values = await approveForm.validateFields();
+      // 收集动态表单字段值作为 variables
+      const variables: Record<string, any> = {};
+      const comment = values.comment;
+      for (const key of Object.keys(values)) {
+        if (key !== 'comment') {
+          variables[key] = values[key];
+        }
+      }
       await completeTask(approveTask.taskId, {
         approved: true,
-        comment: values.comment,
-        variables: values.variables ? JSON.parse(values.variables) : {},
+        comment,
+        variables,
       });
       message.success('审批通过');
       setApproveVisible(false);
@@ -89,18 +134,25 @@ const TaskTodo = () => {
   };
 
   // ===== Reject to Node =====
-  const openReject = (record: any) => {
+  const openReject = async (record: any) => {
     setRejectTask(record);
     rejectForm.resetFields();
     setRejectVisible(true);
+    await loadFormSchema(record.taskId, setRejectSchemaLoading, setRejectFields, setRejectHasSchema);
   };
 
   const handleReject = async () => {
     try {
       const values = await rejectForm.validateFields();
+      const variables: Record<string, any> = {};
+      for (const key of Object.keys(values)) {
+        if (key !== 'targetNodeId' && key !== 'comment') {
+          variables[key] = values[key];
+        }
+      }
       await rejectToNode(rejectTask.taskId, values.targetNodeId, {
         comment: values.comment,
-        variables: values.variables ? JSON.parse(values.variables) : {},
+        variables,
       });
       message.success('已驳回到指定节点');
       setRejectVisible(false);
@@ -223,11 +275,13 @@ const TaskTodo = () => {
 
         const approveItems = [
           {
+            key: 'approve',
             label: '通过',
             icon: <CheckCircleOutlined />,
             onClick: () => openApprove(record),
           },
           {
+            key: 'reject',
             label: '拒绝',
             icon: <CloseCircleOutlined />,
             danger: true,
@@ -325,18 +379,26 @@ const TaskTodo = () => {
         onCancel={() => setApproveVisible(false)}
         okText="确认通过"
         cancelText="取消"
+        width={560}
       >
         <p>正在审批：<strong>{approveTask?.taskName}</strong></p>
         <Form form={approveForm} layout="vertical">
           <Form.Item label="审批意见" name="comment">
             <Input.TextArea rows={3} placeholder="请输入审批意见（可选）" />
           </Form.Item>
-          <Form.Item label="变量 (JSON)" name="variables" tooltip="以 JSON 格式传入业务变量">
-            <Input.TextArea
-              rows={5}
-              placeholder={`{\n  "amount": 1000,\n  "reason": "..." \n}`}
-            />
-          </Form.Item>
+
+          {approveSchemaLoading ? (
+            <div style={{ textAlign: 'center', padding: 20 }}>
+              <Spin tip="加载表单..." />
+            </div>
+          ) : approveHasSchema ? (
+            <>
+              <Divider plain style={{ fontSize: 13, color: '#999' }}>业务表单</Divider>
+              <DynamicFormRenderer fields={approveFields} form={approveForm} />
+            </>
+          ) : (
+            <p style={{ color: '#999', fontSize: 13 }}>该流程未配置表单，可直接提交。</p>
+          )}
         </Form>
       </Modal>
 
@@ -348,6 +410,7 @@ const TaskTodo = () => {
         onCancel={() => setRejectVisible(false)}
         okText="确认驳回"
         cancelText="取消"
+        width={560}
       >
         <p>正在驳回：<strong>{rejectTask?.taskName}</strong></p>
         <Form form={rejectForm} layout="vertical">
@@ -361,9 +424,19 @@ const TaskTodo = () => {
           <Form.Item label="驳回原因" name="comment">
             <Input.TextArea rows={2} placeholder="请输入驳回原因（可选）" />
           </Form.Item>
-          <Form.Item label="变量 (JSON)" name="variables" tooltip="以 JSON 格式传入业务变量">
-            <Input.TextArea rows={3} placeholder='{"remark": "..."}' />
-          </Form.Item>
+
+          {rejectSchemaLoading ? (
+            <div style={{ textAlign: 'center', padding: 20 }}>
+              <Spin tip="加载表单..." />
+            </div>
+          ) : rejectHasSchema ? (
+            <>
+              <Divider plain style={{ fontSize: 13, color: '#999' }}>业务表单</Divider>
+              <DynamicFormRenderer fields={rejectFields} form={rejectForm} />
+            </>
+          ) : (
+            <p style={{ color: '#999', fontSize: 13 }}>该流程未配置表单，可直接驳回。</p>
+          )}
         </Form>
       </Modal>
 

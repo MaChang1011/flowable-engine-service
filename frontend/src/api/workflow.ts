@@ -43,7 +43,19 @@ export const getFormSchema = (formSchemaId: string) =>
 export const getInstanceDetail = (processInstanceId: string) =>
   request.get<any, { data: any }>(`/workflow/instance/${processInstanceId}`);
 
-// 获取流程轨迹
+// 获取流程定义表单字段（根据自定义 processDefId）
+export const getProcessFormFields = (processDefId: string) =>
+  request.get<any, { data: Array<{
+    name: string;
+    type: string;
+    title: string;
+    required: boolean;
+    widget?: string;
+    minimum?: number;
+    maximum?: number;
+    maxLength?: number;
+    options?: string[];
+  }> }>(`/wf/process/define/${processDefId}/fields`);
 export const getProcessTrace = (processInstanceId: string) =>
   request.get<any, { data: any }>(`/workflow/trace/${processInstanceId}`);
 

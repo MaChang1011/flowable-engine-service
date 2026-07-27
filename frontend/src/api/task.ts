@@ -37,3 +37,25 @@ export const claimTask = (taskId: string, userId: string) =>
 // 分配任务
 export const assignTask = (taskId: string, userId: string, orgId?: string) =>
   request.post<any, { data: null }>('/wf/task/assign', { taskId, userId, orgId });
+
+// 获取任务的表单Schema（用于动态表单渲染）
+export const getTaskFormSchema = (taskId: string) =>
+  request.get<any, { data: {
+    hasSchema: boolean;
+    schemaId?: string;
+    schemaName?: string;
+    jsonSchema?: string;
+    uiSchema?: string;
+    fields: Array<{
+      name: string;
+      type: string;
+      title: string;
+      required: boolean;
+      widget?: string;
+      minimum?: number;
+      maximum?: number;
+      maxLength?: number;
+      options?: string[];
+    }>;
+    message?: string;
+  } }>(`/wf/task/${taskId}/form-schema`);

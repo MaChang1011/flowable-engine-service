@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Form, Button, Input, Select, Card, message } from 'antd';
-import { getProcessList } from '@/api/workflow';
-import { startProcess } from '@/api/workflow';
+import { Form, Button, Select, Card, message, Spin, Empty } from 'antd';
+import { getProcessList, startProcess, getProcessFormFields } from '@/api/workflow';
+import DynamicFormRenderer from '@/components/DynamicFormRenderer';
+import type { FormField } from '@/components/DynamicFormRenderer';
 
 const ProcessStart = () => {
   const [processes, setProcesses] = useState<any[]>([]);
   const [form] = Form.useForm();
+  const [selectedProcess, setSelectedProcess] = useState<any>(null);
+  const [formFields, setFormFields] = useState<FormField[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false);
 
   useEffect(() => {
     loadProcesses();
@@ -20,48 +24,87 @@ const ProcessStart = () => {
     }
   };
 
-  const onFinish = async (values: any) => {
+  const onProcessChange = async (processKey: string) => {
+    const proc = processes.find((p) => p.processKey === processKey);
+    setSelectedProcess(proc || null);
+    if (!proc?.formSchemaId) {
+      setFormFields([]);
+      return;
+    }
+
+    setFieldsLoading(true);
     try {
-      await startProcess(values.processKey, `BUSINESS_${Date.now()}`, values);
-      message.success('流程启动成功');
-      form.resetFields();
+      const res = await getProcessFormFields(proc.id);
+      setFormFields(res.data || []);
     } catch (error) {
       console.error(error);
+      setFormFields([]);
+    } finally {
+      setFieldsLoading(false);
+    }
+  };
+
+  const onFinish = async (values: any) => {
+    try {
+      const { processKey, ...variables } = values;
+      await startProcess(processKey, `BUSINESS_${Date.now()}`, variables);
+      message.success('流程启动成功');
+      form.resetFields();
+      setFormFields([]);
+      setSelectedProcess(null);
+    } catch (error) {
+      console.error(error);
+      message.error('流程启动失败');
     }
   };
 
   return (
     <Card title="发起流程">
       <Form form={form} onFinish={onFinish} layout="vertical">
-        <Form.Item 
-          name="processKey" 
-          label="选择流程" 
-          rules={[{ required: true }]}
+        <Form.Item
+          name="processKey"
+          label="选择流程"
+          rules={[{ required: true, message: '请选择流程' }]}
         >
-          <Select>
+          <Select
+            placeholder="请选择要发起的流程"
+            onChange={onProcessChange}
+            showSearch
+            optionFilterProp="label"
+          >
             {processes.map((p) => (
-              <Select.Option key={p.id} value={p.processKey}>
+              <Select.Option key={p.id} value={p.processKey} label={p.processName}>
                 {p.processName} (v{p.version})
               </Select.Option>
             ))}
           </Select>
         </Form.Item>
-        
-        <Form.Item name="applicant" label="申请人" rules={[{ required: true }]}>
-          <Input />
+
+        {selectedProcess && (
+          <>
+            {fieldsLoading ? (
+              <div style={{ textAlign: 'center', padding: 20 }}>
+                <Spin tip="加载表单..." />
+              </div>
+            ) : formFields.length > 0 ? (
+              <DynamicFormRenderer fields={formFields} form={form} />
+            ) : (
+              <Empty
+                description="该流程未配置表单"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                style={{ margin: '20px 0' }}
+              >
+                <p style={{ color: '#999', textAlign: 'center' }}>可以直接提交，无需填写表单字段。</p>
+              </Empty>
+            )}
+          </>
+        )}
+
+        <Form.Item style={{ marginTop: 24 }}>
+          <Button type="primary" htmlType="submit" block size="large">
+            提交申请
+          </Button>
         </Form.Item>
-        
-        <Form.Item name="days" label="天数" rules={[{ required: true }]}>
-          <Input type="number" min="0.5" max="30" />
-        </Form.Item>
-        
-        <Form.Item name="reason" label="事由" rules={[{ required: true }]}>
-          <Input.TextArea rows={4} />
-        </Form.Item>
-        
-        <Button type="primary" htmlType="submit" block>
-          提交申请
-        </Button>
       </Form>
     </Card>
   );
