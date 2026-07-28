@@ -341,6 +341,14 @@ async function deployProcess() {
     const processKey = idMatch ? idMatch[1] : 'myProcess';
     const processName = nameMatch ? nameMatch[1] : processKey;
     
+    // 确保 definitions 有 targetNamespace（Flowable 必需）
+    if (!/targetNamespace=/.test(xml)) {
+      xml = xml.replace(
+        /<bpmn:definitions/,
+        '<bpmn:definitions targetNamespace="http://flowable.org/bpmn20"'
+      );
+    }
+    
     const resp = await fetch('/api/wf/process/define/deploy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
