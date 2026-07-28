@@ -335,19 +335,31 @@ async function deployProcess() {
       .replace(/camunda:expression/g, 'flowable:expression')
       .replace(/xmlns:camunda="http:\/\/camunda.org\/schema\/1.0\/bpmn"/g, 'xmlns:flowable="http://flowable.org/bpmn"');
     
-    const formData = new FormData();
-    formData.append('file', new Blob([xml], {type:'application/xml'}), 'process.bpmn20.xml');
+    // 从 XML 提取 process id 和 name
+    const idMatch = xml.match(/<bpmn:process[^>]*id="([^"]+)"/);
+    const nameMatch = xml.match(/<bpmn:process[^>]*name="([^"]+)"/);
+    const processKey = idMatch ? idMatch[1] : 'myProcess';
+    const processName = nameMatch ? nameMatch[1] : processKey;
     
-    const resp = await fetch('/api/process/definition/deploy', { method: 'POST', body: formData });
+    const resp = await fetch('/api/wf/process/define/deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        processKey: processKey,
+        processName: processName,
+        bpmnXml: xml,
+        category: 'default'
+      })
+    });
     const data = await resp.json();
     if (data.code === 0) {
-      showToast('部署成功! deploymentId: '+data.data, 'success');
+      showToast('部署成功! deploymentId: ' + data.data.deploymentId, 'success');
       document.getElementById('status-bar').textContent = '已部署';
     } else {
-      showToast('部署失败: '+data.message, 'error');
+      showToast('部署失败: ' + (data.message || JSON.stringify(data)), 'error');
     }
   } catch(e) {
-    showToast('部署出错: '+e.message, 'error');
+    showToast('部署出错: ' + e.message, 'error');
   }
 }
 
